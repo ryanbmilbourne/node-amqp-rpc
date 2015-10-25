@@ -276,13 +276,15 @@ rpc.prototype.call = function(cmd, params, cb, context, options) {
  *                                    Non-durable queues (transient queues) are purged if/when a server restarts.
  *                                    Note that durable queues do not necessarily hold persistent messages,
  *                                    although it does not make sense to send persistent messages to a transient queue.
-
+ *                                    Defaults to false.
  * @param {boolean} options.exclusive Exclusive queues may only be accessed by the current connection,
  *                                    and are deleted when that connection closes.
+ *                                    Defaults to false.
  * @param {boolean} options.autoDelete If true, the queue is deleted when all consumers have finished using it.
  *                                     The last consumer can be cancelled either explicitly or because its channel is closed.
  *                                     If there was no consumer ever on the queue, it won't be deleted. Applications
  *                                     can explicitly delete auto-delete queues using the Delete method as normal.
+ *                                     Defaults to true.
  * @return {boolean}
  */
 
@@ -292,11 +294,16 @@ rpc.prototype.on = function(cmd, cb, context, options)    {
     if(this.__cmds[ cmd ]) return false;
     options || (options = {});
 
+    var durable = (typeof options.durable === 'undefined' ? false : options.durable)
+      , exclusive = (typeof options.exclusive === 'undefined' ? false : options.exclusive)
+      , autoDelete = (typeof options.autoDelete === 'undefined' ? true : options.autoDelete)
+    ;
+
     var $this = this;
 
     this._connect(function()    {
 
-        $this.__conn.queue(options.queueName || cmd, function(queue) {
+        $this.__conn.queue(options.queueName || cmd, {durable: durable, exclusive: exclusive, autoDelete: autoDelete}, function(queue) {
             $this.__cmds[ cmd ] = { queue: queue };
             queue.subscribe(function(message, d, headers, deliveryInfo)  {
 
